@@ -1,0 +1,1680 @@
+version: 7.0.1
+
+type: DeclarativeSource
+
+check:
+  type: CheckStream
+  stream_names:
+    - funds
+
+definitions:
+  linked:
+    HttpRequester:
+      authenticator:
+        type: OAuthAuthenticator
+        client_id: "{{ config['client_id'] }}"
+        grant_type: refresh_token
+        client_secret: "{{ config['client_secret'] }}"
+        refresh_token: "{{ config['client_refresh_token'] }}"
+        client_id_name: client_id
+        expires_in_name: expires_in
+        grant_type_name: grant_type
+        access_token_name: access_token
+        access_token_value: "{{ config['client_access_token'] }}"
+        client_secret_name: client_secret
+        refresh_token_name: refresh_token
+        refresh_request_body:
+          preserve_refresh_token: true
+        refresh_token_updater:
+          refresh_token_name: refresh_token
+          access_token_config_path:
+            - client_access_token
+          refresh_token_config_path:
+            - client_refresh_token
+          refresh_token_error_values: []
+          token_expiry_date_config_path:
+            - oauth_token_expiry_date
+          refresh_token_error_status_codes: []
+        token_refresh_endpoint: https://oauth2.sky.blackbaud.com/token
+        refresh_request_headers:
+          Content-Type: application/x-www-form-urlencoded
+          Authorization: >-
+            Basic {{ (config['client_id'] + ':' + config['client_secret']) |
+            base64encode }}
+      request_headers:
+        Accept: application/json
+        Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+    SimpleRetriever:
+      paginator:
+        type: DefaultPaginator
+        page_size_option:
+          type: RequestOption
+          field_name: limit
+          inject_into: request_parameter
+        page_token_option:
+          type: RequestOption
+          field_name: offset
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+    ContinuationTokenRetriever:
+      paginator:
+        type: DefaultPaginator
+        page_size_option:
+          type: RequestOption
+          field_name: limit
+          inject_into: request_parameter
+        page_token_option:
+          type: RequestOption
+          field_name: continuation_token
+          inject_into: request_parameter
+        pagination_strategy:
+          type: CursorPagination
+          cursor_value: "{{ response.get('continuation_token', '') }}"
+          stop_condition: "{{ not response.get('continuation_token') }}"
+          page_size: 100
+
+streams:
+  - type: DeclarativeStream
+    name: constituents
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/constituents
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          age:
+            type:
+              - number
+              - "null"
+          last:
+            type:
+              - string
+              - "null"
+          name:
+            type:
+              - string
+              - "null"
+          email:
+            type:
+              - object
+              - "null"
+            properties:
+              type:
+                type:
+                  - string
+                  - "null"
+              id:
+                type:
+                  - string
+                  - "null"
+              address:
+                type:
+                  - string
+                  - "null"
+              primary:
+                type:
+                  - boolean
+                  - "null"
+              inactive:
+                type:
+                  - boolean
+                  - "null"
+              do_not_email:
+                type:
+                  - boolean
+                  - "null"
+              constituent_id:
+                type:
+                  - string
+                  - "null"
+          first:
+            type:
+              - string
+              - "null"
+          phone:
+            type:
+              - object
+              - "null"
+            properties:
+              type:
+                type:
+                  - string
+                  - "null"
+              id:
+                type:
+                  - string
+                  - "null"
+              number:
+                type:
+                  - string
+                  - "null"
+              primary:
+                type:
+                  - boolean
+                  - "null"
+              inactive:
+                type:
+                  - boolean
+                  - "null"
+              do_not_call:
+                type:
+                  - boolean
+                  - "null"
+              constituent_id:
+                type:
+                  - string
+                  - "null"
+          title:
+            type:
+              - string
+              - "null"
+          gender:
+            type:
+              - string
+              - "null"
+          middle:
+            type:
+              - string
+              - "null"
+          spouse:
+            type:
+              - object
+              - "null"
+            properties:
+              id:
+                type:
+                  - string
+                  - "null"
+              last:
+                type:
+                  - string
+                  - "null"
+              first:
+                type:
+                  - string
+                  - "null"
+              is_head_of_household:
+                type:
+                  - boolean
+                  - "null"
+          suffix:
+            type:
+              - string
+              - "null"
+          address:
+            type:
+              - object
+              - "null"
+            properties:
+              type:
+                type:
+                  - string
+                  - "null"
+              id:
+                type:
+                  - string
+                  - "null"
+              city:
+                type:
+                  - string
+                  - "null"
+              start:
+                type:
+                  - string
+                  - "null"
+              state:
+                type:
+                  - string
+                  - "null"
+              county:
+                type:
+                  - string
+                  - "null"
+              country:
+                type:
+                  - string
+                  - "null"
+              inactive:
+                type:
+                  - boolean
+                  - "null"
+              preferred:
+                type:
+                  - boolean
+                  - "null"
+              do_not_mail:
+                type:
+                  - boolean
+                  - "null"
+              postal_code:
+                type:
+                  - string
+                  - "null"
+              seasonal_end:
+                type:
+                  - object
+                  - "null"
+                properties:
+                  d:
+                    type:
+                      - number
+                      - "null"
+                  m:
+                    type:
+                      - number
+                      - "null"
+              address_lines:
+                type:
+                  - string
+                  - "null"
+              constituent_id:
+                type:
+                  - string
+                  - "null"
+              seasonal_start:
+                type:
+                  - object
+                  - "null"
+                properties:
+                  d:
+                    type:
+                      - number
+                      - "null"
+                  m:
+                    type:
+                      - number
+                      - "null"
+              formatted_address:
+                type:
+                  - string
+                  - "null"
+          title_2:
+            type:
+              - string
+              - "null"
+          deceased:
+            type:
+              - boolean
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          suffix_2:
+            type:
+              - string
+              - "null"
+          birthdate:
+            type:
+              - object
+              - "null"
+            properties:
+              d:
+                type:
+                  - number
+                  - "null"
+              m:
+                type:
+                  - number
+                  - "null"
+              "y":
+                type:
+                  - number
+                  - "null"
+          lookup_id:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          former_name:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
+          marital_status:
+            type:
+              - string
+              - "null"
+          preferred_name:
+            type:
+              - string
+              - "null"
+          online_presence:
+            type:
+              - object
+              - "null"
+            properties:
+              type:
+                type:
+                  - string
+                  - "null"
+              id:
+                type:
+                  - string
+                  - "null"
+              address:
+                type:
+                  - string
+                  - "null"
+              primary:
+                type:
+                  - boolean
+                  - "null"
+              inactive:
+                type:
+                  - boolean
+                  - "null"
+              constituent_id:
+                type:
+                  - string
+                  - "null"
+          fundraiser_status:
+            type:
+              - string
+              - "null"
+          gives_anonymously:
+            type:
+              - boolean
+              - "null"
+          constituent_assigned_fundraisers:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                id:
+                  type:
+                    - string
+                    - "null"
+                fundraiser_name:
+                  type:
+                    - string
+                    - "null"
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: actions
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/ContinuationTokenRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/actions
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: addresses
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/addresses
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: phones
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/phones
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: emailaddresses
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/emailaddresses
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: relationships
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/relationships
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: notes
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: https://api.sky.blackbaud.com/constituent/v1/notes
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: customfields
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/constituents/customfields
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: constituentcodes
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/constituent/v1/constituents/constituentcodes
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: gifts
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: https://api.sky.blackbaud.com/gift/v1/gifts
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: giftcustomfields
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/gift/v1/gifts/customfields
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: opportunities
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          field_name: offset
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 500
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/opportunity/v1/opportunities
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+        request_parameters:
+          include_inactive: "false"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: campaigns
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/fundraising/v1/campaigns
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P90D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: funds
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: https://api.sky.blackbaud.com/fundraising/v1/funds
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P90D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: appeals
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/fundraising/v1/appeals
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: PT2H
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
+  - type: DeclarativeStream
+    name: available_codetables
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          field_name: offset
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 10000
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/codetable/v1/codetables
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+        request_parameters:
+          limit: "10000"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - code_tables_id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+  - type: DeclarativeStream
+    name: codetable_solicitcodes
+    retriever:
+      type: SimpleRetriever
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          field_name: offset
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 10000
+      requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/codetable/v1/codetables/5044/tableentries
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          $ref: "#/definitions/linked/HttpRequester/request_headers"
+        request_parameters:
+          limit: "10000"
+          include_inactive: "false"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - value
+    primary_key:
+      - table_entries_id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties: {}
+        additionalProperties: true
+  - type: DeclarativeStream
+    name: gift_query
+    retriever:
+      type: AsyncRetriever
+      status_mapping:
+        type: AsyncJobStatusMap
+        failed:
+          - Failed
+          - Error
+        running:
+          - Running
+          - Queued
+        timeout:
+          - Timeout
+          - TimedOut
+        completed:
+          - Completed
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path: []
+      download_decoder:
+        type: CsvDecoder
+        encoding: utf-8
+        delimiter: ","
+      status_extractor:
+        type: DpathExtractor
+        field_path:
+          - status
+      polling_requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/query/jobs/{{
+          creation_response.id
+          }}?product=RE&module=None&include_read_url=OnceCompleted
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+      creation_requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/query/queries/executebyid?product=RE&module=None
+        http_method: POST
+        request_body:
+          type: RequestBodyJsonObject
+          value:
+            id: 50601
+            ux_mode: Asynchronous
+            parameters:
+              DateTo: >-
+                {{ stream_interval.end_time if stream_interval else
+                now_utc().strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}
+              DateFrom: >-
+                {{ stream_interval.start_time if stream_interval else
+                (config.get('start_date') if config.get('start_date') else
+                '2020-01-01T00:00:00Z') }}
+            output_format: Csv
+            formatting_mode: UI
+            sql_generation_mode: Query
+            use_static_query_id_set: false
+            time_zone_offset_in_minutes: 0
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          Content-Type: application/json
+          Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+      download_requester:
+        type: HttpRequester
+        url: "{{ download_target }}"
+        http_method: GET
+      download_target_extractor:
+        type: DpathExtractor
+        field_path:
+          - sas_uri
+    primary_key:
+      - Gift ID
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/schema#
+        required:
+          - Gift ID
+          - Gift Date
+        properties:
+          QRECID:
+            type:
+              - string
+              - "null"
+          Gift ID:
+            type: string
+          Gift Date:
+            type: string
+          Gift Type:
+            type:
+              - string
+              - "null"
+          Gift Amount:
+            type:
+              - string
+              - "null"
+          Constituent ID:
+            type:
+              - string
+              - "null"
+          First Gift Date:
+            type:
+              - string
+              - "null"
+          Gift Specific Custom Fields Donation Form Name Description:
+            type:
+              - string
+              - "null"
+        additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: Gift Date
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      is_data_feed: false
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      lookback_window: P7D
+      cursor_granularity: P1D
+  - type: DeclarativeStream
+    name: generic_query
+    retriever:
+      type: AsyncRetriever
+      status_mapping:
+        type: AsyncJobStatusMap
+        failed:
+          - Failed
+          - Error
+        running:
+          - Running
+          - Queued
+        timeout:
+          - Timeout
+          - TimedOut
+        completed:
+          - Completed
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path: []
+      download_decoder:
+        type: CsvDecoder
+        encoding: utf-8
+        delimiter: ","
+      status_extractor:
+        type: DpathExtractor
+        field_path:
+          - status
+      polling_requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/query/jobs/{{
+          creation_response.id
+          }}?product=RE&module=None&include_read_url=OnceCompleted
+        http_method: GET
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+      creation_requester:
+        type: HttpRequester
+        url: >-
+          https://api.sky.blackbaud.com/query/queries/executebyid?product=RE&module=None
+        http_method: POST
+        request_body:
+          type: RequestBodyJsonObject
+          value:
+            id: 50601
+            ux_mode: Asynchronous
+            output_format: Csv
+            formatting_mode: UI
+            sql_generation_mode: Query
+            use_static_query_id_set: false
+            time_zone_offset_in_minutes: 0
+        authenticator:
+          $ref: "#/definitions/linked/HttpRequester/authenticator"
+        request_headers:
+          Content-Type: application/json
+          Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+      download_requester:
+        type: HttpRequester
+        url: "{{ download_target }}"
+        http_method: GET
+      download_target_extractor:
+        type: DpathExtractor
+        field_path:
+          - sas_uri
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/schema#
+        properties:
+          QRECID:
+            type:
+              - string
+              - "null"
+          Gift ID:
+            type:
+              - string
+              - "null"
+          Gift Date:
+            type:
+              - string
+              - "null"
+          Gift Type:
+            type:
+              - string
+              - "null"
+          Gift Amount:
+            type:
+              - string
+              - "null"
+          Constituent ID:
+            type:
+              - string
+              - "null"
+          First Gift Date:
+            type:
+              - string
+              - "null"
+          Gift Specific Custom Fields Donation Form Name Description:
+            type:
+              - string
+              - "null"
+        additionalProperties: true
+
+spec:
+  type: Spec
+  advanced_auth:
+    auth_flow_type: oauth2.0
+    oauth_config_specification:
+      complete_oauth_output_specification:
+        required:
+          - access_token
+          - refresh_token
+        properties:
+          access_token:
+            type: string
+            path_in_connector_config:
+              - client_access_token
+          refresh_token:
+            type: string
+            path_in_connector_config:
+              - client_refresh_token
+      oauth_connector_input_specification:
+        consent_url: >-
+          https://app.blackbaud.com/oauth/authorize?client_id={{client_id}}&response_type=code&redirect_uri={{redirect_uri}}&state={{state}}
+        extract_output:
+          - access_token
+          - refresh_token
+        access_token_url: https://oauth2.sky.blackbaud.com/token
+        access_token_params:
+          code: "{{code}}"
+          client_id: "{{client_id}}"
+          grant_type: authorization_code
+          redirect_uri: "{{redirect_uri}}"
+          client_secret: "{{client_secret}}"
+        access_token_headers:
+          Content-Type: application/x-www-form-urlencoded
+      complete_oauth_server_input_specification:
+        required:
+          - client_id
+          - client_secret
+        properties:
+          client_id:
+            type: string
+          client_secret:
+            type: string
+      complete_oauth_server_output_specification:
+        required:
+          - client_id
+          - client_secret
+        properties:
+          client_id:
+            type: string
+            path_in_connector_config:
+              - client_id
+          client_secret:
+            type: string
+            path_in_connector_config:
+              - client_secret
+  connection_specification:
+    type: object
+    $schema: http://json-schema.org/draft-07/schema#
+    required:
+      - client_id
+      - client_secret
+      - subscription_key
+    properties:
+      client_id:
+        type: string
+        description: The Application ID from your registered SKY application
+        order: 0
+        title: Client ID
+        airbyte_secret: true
+      start_date:
+        type: string
+        description: >-
+          UTC date and time in the format 2020-01-01T00:00:00Z. Data modified
+          after this date will be replicated.
+        order: 3
+        title: Start Date
+        format: date-time
+        pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
+        examples:
+          - "2020-01-01T00:00:00Z"
+      client_secret:
+        type: string
+        description: The Application secret from your registered SKY application
+        order: 1
+        title: Client Secret
+        airbyte_secret: true
+      subscription_key:
+        type: string
+        description: Your SKY API subscription key (primary or secondary)
+        order: 2
+        title: Subscription Key
+        airbyte_secret: true
+      client_access_token:
+        type: string
+        order: 5
+        title: Access Token
+        airbyte_hidden: true
+        airbyte_secret: true
+      client_refresh_token:
+        type: string
+        order: 4
+        title: Refresh Token
+        airbyte_hidden: true
+        airbyte_secret: true
+    additionalProperties: true
+
+metadata:
+  testedStreams:
+    funds:
+      isStale: false
+      hasRecords: false
+      streamHash: a98c40255b65f3fb0c6e3a3928d59e75cc2cd86b
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: false
+    gifts:
+      streamHash: 9a1c9677a1df8ddc825c897c613d50dc9d08913a
+    notes:
+      streamHash: 2fee3aad2845f5b23856f1262042cb837cfc6fd5
+    phones:
+      streamHash: 9e79211275113cb9551d0900a11927acfd35753b
+    actions:
+      streamHash: 22ccafd9006da48882b34a1aa4a853087fedcfd1
+    appeals:
+      streamHash: 605d231cb506200568c64d4b6441844987fe6f25
+    addresses:
+      streamHash: 990d49bb015c83f7b2f0d5a7473cd842884a6398
+    campaigns:
+      isStale: true
+      streamHash: 65710228aba98ee5a43eda05e43308e06500e5ca
+    gift_query:
+      streamHash: bde0f1df82dfca60f71a844440c54f80bb8da25e
+    constituents:
+      isStale: false
+      hasRecords: true
+      streamHash: aa68fe446f5833134d4a9973d362c9a2fa3034da
+      hasResponse: true
+      primaryKeysAreUnique: false
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
+    customfields:
+      streamHash: 5c8a9659106648dfab789854b0b8695d475cbef9
+    generic_query:
+      streamHash: b58e163b4ce984c8f00e6014e2d8c777d75d5e43
+    opportunities:
+      streamHash: bd8ff4d55831c918e33c65e7cf4be53a56f2e080
+    relationships:
+      streamHash: b4576a60beb573ee7f774c11c60b056f18666abf
+    emailaddresses:
+      streamHash: 2fe36ba672a5eff8e7eb85f99b3e6e96256cb9b7
+    constituentcodes:
+      streamHash: 632c53f6af26b4048dd3135ee592a09d19b1c5c9
+    giftcustomfields:
+      streamHash: 3227ae35f1cfb1f07ec09f6383c63c748c1b97bd
+    available_codetables:
+      streamHash: debb4253d2d71df2af327ef523fc6e16ee367d21
+    codetable_solicitcodes:
+      isStale: true
+      streamHash: 577eb55c75d20a758d1bba3f09b80aca1735902b
+  autoImportSchema:
+    funds: true
+    gifts: true
+    notes: true
+    phones: true
+    actions: true
+    appeals: true
+    addresses: true
+    campaigns: true
+    gift_query: true
+    constituents: true
+    customfields: true
+    generic_query: true
+    opportunities: true
+    relationships: true
+    emailaddresses: true
+    constituentcodes: true
+    giftcustomfields: true
+    available_codetables: true
+    codetable_solicitcodes: true
+
+concurrency_level:
+  type: ConcurrencyLevel
+  default_concurrency: 1
