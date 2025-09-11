@@ -1,3 +1,4 @@
+(Work in progress -- use at your own risk) 
 # SKY Bridge - Airbyte Connector for Blackbaud NXT
 
 An open-source Airbyte connector that enables seamless data integration between Blackbaud NXT (via SKY API) and 60+ modern data platforms including Snowflake, BigQuery, PostgreSQL, and more.
