@@ -477,7 +477,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -530,7 +529,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -583,7 +581,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -636,7 +633,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -689,7 +685,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -742,7 +737,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -794,7 +788,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -847,7 +840,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -900,7 +892,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -952,7 +943,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -1005,7 +995,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -1058,7 +1047,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -1113,7 +1101,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -1167,7 +1154,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
@@ -1220,7 +1206,6 @@ streams:
           '2020-01-01T00:00:00Z' }}
         datetime_format: "%Y-%m-%dT%H:%M:%SZ"
       datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      lookback_window: PT2H
       start_time_option:
         type: RequestOption
         field_name: last_modified
