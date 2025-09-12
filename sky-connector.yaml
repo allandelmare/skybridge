@@ -9,6 +9,41 @@ check:
 
 definitions:
   linked:
+    ErrorHandler:
+      type: CompositeErrorHandler
+      error_handlers:
+        - type: DefaultErrorHandler
+          response_filters:
+            - type: HttpResponseFilter
+              http_codes: [429]
+              action: RETRY
+          backoff_strategies:
+            - type: WaitTimeFromHeader
+              header: Retry-After
+          max_retries: 5
+        - type: DefaultErrorHandler
+          response_filters:
+            - type: HttpResponseFilter
+              http_codes: [500, 502, 503, 504]
+              action: RETRY
+          backoff_strategies:
+            - type: ExponentialBackoffStrategy
+              factor: 2
+          max_retries: 3
+        - type: DefaultErrorHandler
+          response_filters:
+            - type: HttpResponseFilter
+              http_codes: [403]
+              action: FAIL
+              error_message: "API quota exceeded. Check Retry-After header for quota renewal time."
+          max_retries: 0
+        - type: DefaultErrorHandler
+          response_filters:
+            - type: HttpResponseFilter
+              http_codes: [401]
+              action: FAIL
+              error_message: "Authentication failed. Please check your API credentials and refresh token."
+          max_retries: 0
     HttpRequester:
       authenticator:
         type: OAuthAuthenticator
@@ -91,6 +126,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -466,6 +503,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -517,6 +556,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -568,6 +609,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -619,6 +662,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -670,6 +715,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -720,6 +767,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -771,6 +820,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -822,6 +873,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -872,6 +925,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -923,6 +978,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -1034,6 +1091,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -1084,6 +1143,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -1135,6 +1196,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -1295,6 +1358,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       creation_requester:
         type: HttpRequester
         url: >-
@@ -1323,10 +1388,14 @@ streams:
         request_headers:
           Content-Type: application/json
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       download_requester:
         type: HttpRequester
         url: "{{ download_target }}"
         http_method: GET
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       download_target_extractor:
         type: DpathExtractor
         field_path:
@@ -1434,6 +1503,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       creation_requester:
         type: HttpRequester
         url: >-
@@ -1454,10 +1525,14 @@ streams:
         request_headers:
           Content-Type: application/json
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       download_requester:
         type: HttpRequester
         url: "{{ download_target }}"
         http_method: GET
+        error_handler:
+          $ref: "#/definitions/linked/ErrorHandler"
       download_target_extractor:
         type: DpathExtractor
         field_path:
