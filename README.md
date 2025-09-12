@@ -52,18 +52,21 @@ SKY Bridge democratizes access to NXT data by providing a no-code/low-code solut
 
 #### Step 2: Add Connector to Airbyte
 
-1. In Airbyte, go to **Workspace** → **Builder**
-2. Click **+ New Custom Connector**
-3. Choose **Import from YAML**
-4. Choose `skybridge-connector.yaml` from your file system.
-5. Name it (example, "Blackbaud NXT (SKY API)").
-6. Configure Query ID's and/or Codetable ID's. Duplicate streams to create and customize your own!
-7. Test if desired (especially if you made any changes) - note that manually adding any value in the access token field - example 123456789 - is required for first test in builder mode (not required in production).
-8. Click 'Publish' to your own organization.
+1. In Airbyte, navigate to Builder
+2. Click + New Custom Connector
+3. Select Import a YAML manifest -> Import a YAML button
+4. Choose sky-connector.yaml
+5. Fill in required 'Inputs' (client ID, secret, API key)
+6. Important: to properly configure your schema and tests in builder mode, you need to stub the access key with dummy data/starting value so its not null (example, just enter 12345678 - oauth will replace it).
+7. Choose a stream (ie, 'funds'). Scroll to the oAuth section/button and click to authorize.
+8. Click 'test'. This will populate your schema for that stream.
+9. Test streams (or if not planning to use a stream, you can skip tests and ignore warnings).
+10. Note that you'll need to change the Query ID for queries, or the code table ID for code table streams to match your environment.
+11. Click 'Publish'
 
 #### Step 3: Configure Connection
 
-1. Create a new source using your custom connector
+1. Create a new source using your custom connector (sources -> custom -> choose connector)
 2. Enter your credentials:
    - **Client ID**: Your SKY application ID
    - **Client Secret**: Your SKY application secret
