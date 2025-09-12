@@ -1259,9 +1259,13 @@ streams:
         failed:
           - Failed
           - Error
+          - Cancelled
         running:
           - Running
           - Queued
+          - Pending
+          - Throttled
+          - Cancelling
         timeout:
           - Timeout
           - TimedOut
@@ -1394,9 +1398,13 @@ streams:
         failed:
           - Failed
           - Error
+          - Cancelled
         running:
           - Running
           - Queued
+          - Pending
+          - Throttled
+          - Cancelling
         timeout:
           - Timeout
           - TimedOut
