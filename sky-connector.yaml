@@ -1079,6 +1079,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        request_parameters:
+          include_inactive: "true"
         error_handler:
           $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
@@ -1131,6 +1133,8 @@ streams:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
+        request_parameters:
+          include_inactive: "true"
         error_handler:
           $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
