@@ -86,6 +86,7 @@ definitions:
           type: CursorPagination
           cursor_value: "{{ response.get('next_link', '') }}"
           stop_condition: "{{ not response.get('next_link') }}"
+          page_size: 4900
         page_token_option:
           type: RequestPath
     ContinuationTokenRetriever:
