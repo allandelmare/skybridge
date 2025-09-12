@@ -1,11 +1,11 @@
-version: 7.0.1
+version: 7.0.4
 
 type: DeclarativeSource
 
 check:
   type: CheckStream
   stream_names:
-    - funds
+    - constituents
 
 definitions:
   linked:
@@ -13,37 +13,48 @@ definitions:
       type: CompositeErrorHandler
       error_handlers:
         - type: DefaultErrorHandler
+          max_retries: 5
           response_filters:
             - type: HttpResponseFilter
-              http_codes: [429]
               action: RETRY
+              http_codes:
+                - 429
           backoff_strategies:
             - type: WaitTimeFromHeader
               header: Retry-After
-          max_retries: 5
         - type: DefaultErrorHandler
+          max_retries: 3
           response_filters:
             - type: HttpResponseFilter
-              http_codes: [500, 502, 503, 504]
               action: RETRY
+              http_codes:
+                - 500
+                - 502
+                - 503
+                - 504
           backoff_strategies:
             - type: ExponentialBackoffStrategy
               factor: 2
-          max_retries: 3
         - type: DefaultErrorHandler
+          max_retries: 0
           response_filters:
             - type: HttpResponseFilter
-              http_codes: [403]
               action: FAIL
-              error_message: "API quota exceeded. Check Retry-After header for quota renewal time."
-          max_retries: 0
+              http_codes:
+                - 403
+              error_message: >-
+                API quota exceeded. Check Retry-After header for quota renewal
+                time.
         - type: DefaultErrorHandler
+          max_retries: 0
           response_filters:
             - type: HttpResponseFilter
-              http_codes: [401]
               action: FAIL
-              error_message: "Authentication failed. Please check your API credentials and refresh token."
-          max_retries: 0
+              http_codes:
+                - 401
+              error_message: >-
+                Authentication failed. Please check your API credentials and
+                refresh token.
     HttpRequester:
       authenticator:
         type: OAuthAuthenticator
@@ -76,19 +87,67 @@ definitions:
           Authorization: >-
             Basic {{ (config['client_id'] + ':' + config['client_secret']) |
             base64encode }}
+      error_handler:
+        type: CompositeErrorHandler
+        error_handlers:
+          - type: DefaultErrorHandler
+            max_retries: 5
+            response_filters:
+              - type: HttpResponseFilter
+                action: RETRY
+                http_codes:
+                  - 429
+            backoff_strategies:
+              - type: WaitTimeFromHeader
+                header: Retry-After
+          - type: DefaultErrorHandler
+            max_retries: 3
+            response_filters:
+              - type: HttpResponseFilter
+                action: RETRY
+                http_codes:
+                  - 500
+                  - 502
+                  - 503
+                  - 504
+            backoff_strategies:
+              - type: ExponentialBackoffStrategy
+                factor: 2
+          - type: DefaultErrorHandler
+            max_retries: 0
+            response_filters:
+              - type: HttpResponseFilter
+                action: FAIL
+                http_codes:
+                  - 403
+                error_message: >-
+                  API quota exceeded. Check Retry-After header for quota renewal
+                  time.
+          - type: DefaultErrorHandler
+            max_retries: 0
+            response_filters:
+              - type: HttpResponseFilter
+                action: FAIL
+                http_codes:
+                  - 401
+                error_message: >-
+                  Authentication failed. Please check your API credentials and
+                  refresh token.
       request_headers:
         Accept: application/json
         Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+      request_parameters:
+        include_inactive: "true"
     SimpleRetriever:
       paginator:
         type: DefaultPaginator
-        pagination_strategy:
-          type: CursorPagination
-          cursor_value: "{{ response.get('next_link', '') }}"
-          stop_condition: "{{ not response.get('next_link') }}"
-          page_size: 4900
         page_token_option:
           type: RequestPath
+        pagination_strategy:
+          type: CursorPagination
+          page_size: 4900
+          cursor_value: "{{ response.get('next_link', '') }}"
+          stop_condition: "{{ not response.get('next_link') }}"
     ContinuationTokenRetriever:
       paginator:
         type: DefaultPaginator
@@ -102,9 +161,9 @@ definitions:
           inject_into: request_parameter
         pagination_strategy:
           type: CursorPagination
+          page_size: 100
           cursor_value: "{{ response.get('continuation_token', '') }}"
           stop_condition: "{{ not response.get('continuation_token') }}"
-          page_size: 100
 
 streams:
   - type: DeclarativeStream
@@ -115,15 +174,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/constituent/v1/constituents
+        url: https://api.sky.blackbaud.com/constituent/v1/constituents
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -276,6 +334,10 @@ streams:
                   - string
                   - "null"
               id:
+                type:
+                  - string
+                  - "null"
+              end:
                 type:
                   - string
                   - "null"
@@ -488,18 +550,30 @@ streams:
     retriever:
       type: SimpleRetriever
       paginator:
-        $ref: "#/definitions/linked/ContinuationTokenRetriever/paginator"
+        type: DefaultPaginator
+        page_size_option:
+          type: RequestOption
+          field_name: limit
+          inject_into: request_parameter
+        page_token_option:
+          type: RequestOption
+          field_name: continuation_token
+          inject_into: request_parameter
+        pagination_strategy:
+          type: CursorPagination
+          page_size: 100
+          cursor_value: "{{ response.get('continuation_token', '') }}"
+          stop_condition: "{{ not response.get('continuation_token') }}"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/constituent/v1/actions
+        url: https://api.sky.blackbaud.com/constituent/v1/actions
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -512,8 +586,87 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          description:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          date:
+            type:
+              - string
+              - "null"
+          status:
+            type:
+              - string
+              - "null"
+          outcome:
+            type:
+              - string
+              - "null"
+          summary:
+            type:
+              - string
+              - "null"
+          category:
+            type:
+              - string
+              - "null"
+          priority:
+            type:
+              - string
+              - "null"
+          completed:
+            type:
+              - boolean
+              - "null"
+          direction:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          start_time:
+            type:
+              - string
+              - "null"
+          fundraisers:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - string
+                - "null"
+          date_modified:
+            type: string
+          completed_date:
+            type:
+              - string
+              - "null"
+          constituent_id:
+            type:
+              - string
+              - "null"
+          opportunity_id:
+            type:
+              - string
+              - "null"
+          computed_status:
+            type:
+              - string
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -543,15 +696,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/constituent/v1/addresses
+        url: https://api.sky.blackbaud.com/constituent/v1/addresses
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -564,8 +716,67 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          city:
+            type:
+              - string
+              - "null"
+          start:
+            type:
+              - string
+              - "null"
+          state:
+            type:
+              - string
+              - "null"
+          country:
+            type:
+              - string
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          preferred:
+            type:
+              - boolean
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          do_not_mail:
+            type:
+              - boolean
+              - "null"
+          postal_code:
+            type:
+              - string
+              - "null"
+          address_lines:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
+          constituent_id:
+            type:
+              - string
+              - "null"
+          formatted_address:
+            type:
+              - string
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -595,15 +806,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/constituent/v1/phones
+        url: https://api.sky.blackbaud.com/constituent/v1/phones
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -616,8 +826,43 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          number:
+            type:
+              - string
+              - "null"
+          primary:
+            type:
+              - boolean
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          do_not_call:
+            type:
+              - boolean
+              - "null"
+          date_modified:
+            type: string
+          constituent_id:
+            type:
+              - string
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -647,15 +892,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/constituent/v1/emailaddresses
+        url: https://api.sky.blackbaud.com/constituent/v1/emailaddresses
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -668,8 +912,43 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          address:
+            type:
+              - string
+              - "null"
+          primary:
+            type:
+              - boolean
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          do_not_email:
+            type:
+              - boolean
+              - "null"
+          date_modified:
+            type: string
+          constituent_id:
+            type:
+              - string
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -699,15 +978,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/constituent/v1/relationships
+        url: https://api.sky.blackbaud.com/constituent/v1/relationships
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -720,8 +998,113 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          end:
+            type:
+              - object
+              - "null"
+            properties:
+              d:
+                type:
+                  - number
+                  - "null"
+              m:
+                type:
+                  - number
+                  - "null"
+              "y":
+                type:
+                  - number
+                  - "null"
+          name:
+            type:
+              - string
+              - "null"
+          start:
+            type:
+              - object
+              - "null"
+            properties:
+              d:
+                type:
+                  - number
+                  - "null"
+              m:
+                type:
+                  - number
+                  - "null"
+              "y":
+                type:
+                  - number
+                  - "null"
+          comment:
+            type:
+              - string
+              - "null"
+          position:
+            type:
+              - string
+              - "null"
+          is_spouse:
+            type:
+              - boolean
+              - "null"
+          last_name:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          first_name:
+            type:
+              - string
+              - "null"
+          relation_id:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
+          constituent_id:
+            type:
+              - string
+              - "null"
+          reciprocal_type:
+            type:
+              - string
+              - "null"
+          is_primary_business:
+            type:
+              - boolean
+              - "null"
+          is_organization_contact:
+            type:
+              - boolean
+              - "null"
+          reciprocal_relationship_id:
+            type:
+              - string
+              - "null"
+          is_spouse_head_of_household:
+            type:
+              - boolean
+              - "null"
+          is_constituent_head_of_household:
+            type:
+              - boolean
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -755,10 +1138,10 @@ streams:
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -771,8 +1154,52 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          date:
+            type:
+              - object
+              - "null"
+            properties:
+              d:
+                type:
+                  - number
+                  - "null"
+              m:
+                type:
+                  - number
+                  - "null"
+              "y":
+                type:
+                  - number
+                  - "null"
+          text:
+            type:
+              - string
+              - "null"
+          summary:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
+          constituent_id:
+            type:
+              - string
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -802,15 +1229,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/constituent/v1/constituents/customfields
+        url: https://api.sky.blackbaud.com/constituent/v1/constituents/customfields
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -823,8 +1249,51 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          date:
+            type:
+              - string
+              - "null"
+          value:
+            anyOf:
+              - type:
+                  - boolean
+                  - number
+                  - string
+              - type: object
+                properties:
+                  m:
+                    type: number
+                  "y":
+                    type: number
+          comment:
+            type:
+              - string
+              - "null"
+          category:
+            type:
+              - string
+              - "null"
+          parent_id:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -859,10 +1328,10 @@ streams:
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -875,8 +1344,52 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          description:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          start:
+            type:
+              - object
+              - "null"
+            properties:
+              d:
+                type:
+                  - number
+                  - "null"
+              m:
+                type:
+                  - number
+                  - "null"
+              "y":
+                type:
+                  - number
+                  - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          sequence:
+            type:
+              - number
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
+          constituent_id:
+            type:
+              - string
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -910,10 +1423,10 @@ streams:
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -926,8 +1439,243 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          date:
+            type:
+              - string
+              - "null"
+          amount:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          balance:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          subtype:
+            type:
+              - string
+              - "null"
+          payments:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                payment_method:
+                  type:
+                    - string
+                    - "null"
+          receipts:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                date:
+                  type:
+                    - string
+                    - "null"
+                amount:
+                  type:
+                    - object
+                    - "null"
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+                number:
+                  type:
+                    - number
+                    - "null"
+                status:
+                  type:
+                    - string
+                    - "null"
+          lookup_id:
+            type:
+              - string
+              - "null"
+          post_date:
+            type:
+              - string
+              - "null"
+          reference:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          fundraisers:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                amount:
+                  type:
+                    - object
+                    - "null"
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+                constituent_id:
+                  type:
+                    - string
+                    - "null"
+          gift_splits:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                id:
+                  type:
+                    - string
+                    - "null"
+                amount:
+                  type:
+                    - object
+                    - "null"
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+                fund_id:
+                  type:
+                    - string
+                    - "null"
+                appeal_id:
+                  type:
+                    - string
+                    - "null"
+                package_id:
+                  type:
+                    - string
+                    - "null"
+                campaign_id:
+                  type:
+                    - string
+                    - "null"
+          gift_status:
+            type:
+              - string
+              - "null"
+          post_status:
+            type:
+              - string
+              - "null"
+          batch_number:
+            type:
+              - string
+              - "null"
+          constituency:
+            type:
+              - string
+              - "null"
+          is_anonymous:
+            type:
+              - boolean
+              - "null"
+          linked_gifts:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - string
+                - "null"
+          soft_credits:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                id:
+                  type:
+                    - string
+                    - "null"
+                amount:
+                  type:
+                    - object
+                    - "null"
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+                gift_id:
+                  type:
+                    - string
+                    - "null"
+                constituent_id:
+                  type:
+                    - string
+                    - "null"
+          date_modified:
+            type: string
+          constituent_id:
+            type:
+              - string
+              - "null"
+          acknowledgements:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                date:
+                  type:
+                    - string
+                    - "null"
+                status:
+                  type:
+                    - string
+                    - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -957,15 +1705,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/gift/v1/gifts/customfields
+        url: https://api.sky.blackbaud.com/gift/v1/gifts/customfields
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -978,8 +1725,35 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          value:
+            type:
+              - string
+              - "null"
+          category:
+            type:
+              - string
+              - "null"
+          parent_id:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -1009,8 +1783,7 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/opportunity/v1/opportunities
+        url: https://api.sky.blackbaud.com/opportunity/v1/opportunities
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
@@ -1030,8 +1803,112 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          id:
+            type: string
+          name:
+            type:
+              - string
+              - "null"
+          status:
+            type:
+              - string
+              - "null"
+          purpose:
+            type:
+              - string
+              - "null"
+          ask_date:
+            type:
+              - string
+              - "null"
+          deadline:
+            type:
+              - string
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          ask_amount:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          funded_date:
+            type:
+              - string
+              - "null"
+          fundraisers:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                credit_amount:
+                  type:
+                    - object
+                    - "null"
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+                constituent_id:
+                  type:
+                    - string
+                    - "null"
+          date_modified:
+            type: string
+          expected_date:
+            type:
+              - string
+              - "null"
+          funded_amount:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          constituent_id:
+            type:
+              - string
+              - "null"
+          expected_amount:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          opportunity_likelihood_id:
+            type:
+              - string
+              - "null"
+          opportunity_likelihood_name:
+            type:
+              - string
+              - "null"
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -1061,17 +1938,16 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/fundraising/v1/campaigns
+        url: https://api.sky.blackbaud.com/fundraising/v1/campaigns
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
         request_parameters:
-          include_inactive: "true"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
+          $ref: "#/definitions/linked/HttpRequester/request_parameters"
       record_selector:
         type: RecordSelector
         extractor:
@@ -1084,8 +1960,52 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          description:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          goal:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          category:
+            type:
+              - string
+              - "null"
+          end_date:
+            type:
+              - string
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          lookup_id:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          start_date:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -1119,12 +2039,12 @@ streams:
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
         request_parameters:
-          include_inactive: "true"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
+          $ref: "#/definitions/linked/HttpRequester/request_parameters"
       record_selector:
         type: RecordSelector
         extractor:
@@ -1137,8 +2057,52 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          type:
+            type:
+              - string
+              - "null"
+          description:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          goal:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          category:
+            type:
+              - string
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          lookup_id:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          start_date:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -1168,15 +2132,14 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/fundraising/v1/appeals
+        url: https://api.sky.blackbaud.com/fundraising/v1/appeals
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       record_selector:
         type: RecordSelector
         extractor:
@@ -1189,8 +2152,48 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - id
+          - date_modified
+        properties:
+          description:
+            type:
+              - string
+              - "null"
+          id:
+            type: string
+          goal:
+            type:
+              - object
+              - "null"
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
+          category:
+            type:
+              - string
+              - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          lookup_id:
+            type:
+              - string
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          start_date:
+            type:
+              - string
+              - "null"
+          date_modified:
+            type: string
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -1220,8 +2223,7 @@ streams:
         $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
-        url: >-
-          https://api.sky.blackbaud.com/codetable/v1/codetables
+        url: https://api.sky.blackbaud.com/codetable/v1/codetables
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
@@ -1241,8 +2243,57 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - code_tables_id
+        properties:
+          name:
+            type:
+              - string
+              - "null"
+          category:
+            type:
+              - number
+              - string
+              - "null"
+          can_manage:
+            type:
+              - boolean
+              - "null"
+          has_entries:
+            type:
+              - boolean
+              - "null"
+          country_mask:
+            type:
+              - number
+              - "null"
+          user_defined:
+            type:
+              - boolean
+              - "null"
+          product_flags:
+            type:
+              - number
+              - "null"
+          code_tables_id:
+            type: string
+          is_field_lookup:
+            type:
+              - boolean
+              - "null"
+          supports_cleanup:
+            type:
+              - boolean
+              - "null"
+          has_short_description:
+            type:
+              - boolean
+              - "null"
+          short_description_length:
+            type:
+              - number
+              - "null"
         additionalProperties: true
   - type: DeclarativeStream
     name: codetable_solicitcodes
@@ -1274,11 +2325,67 @@ streams:
       type: InlineSchemaLoader
       schema:
         type: object
-        $schema: http://json-schema.org/draft-07/schema#
-        properties: {}
+        $schema: http://json-schema.org/schema#
+        required:
+          - table_entries_id
+        properties:
+          sequence:
+            type:
+              - number
+              - "null"
+          is_active:
+            type:
+              - boolean
+              - "null"
+          date_added:
+            type:
+              - string
+              - "null"
+          phone_type:
+            type:
+              - string
+              - "null"
+          added_by_id:
+            type:
+              - string
+              - "null"
+          date_changed:
+            type:
+              - string
+              - "null"
+          phone_format:
+            type:
+              - string
+              - "null"
+          code_tables_id:
+            type:
+              - string
+              - "null"
+          is_system_entry:
+            type:
+              - boolean
+              - "null"
+          code_tables_name:
+            type:
+              - string
+              - "null"
+          long_description:
+            type:
+              - string
+              - "null"
+          table_entries_id:
+            type: string
+          short_description:
+            type:
+              - string
+              - "null"
+          last_changed_by_id:
+            type:
+              - string
+              - "null"
         additionalProperties: true
   - type: DeclarativeStream
-    name: gift_query
+    name: query_incremental
     retriever:
       type: AsyncRetriever
       status_mapping:
@@ -1314,16 +2421,15 @@ streams:
       polling_requester:
         type: HttpRequester
         url: >-
-          https://api.sky.blackbaud.com/query/jobs/{{
-          creation_response.id
+          https://api.sky.blackbaud.com/query/jobs/{{ creation_response.id
           }}?product=RE&module=None&include_read_url=OnceCompleted
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       creation_requester:
         type: HttpRequester
         url: >-
@@ -1349,17 +2455,17 @@ streams:
             time_zone_offset_in_minutes: 0
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           Content-Type: application/json
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       download_requester:
         type: HttpRequester
         url: "{{ download_target }}"
         http_method: GET
         error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
       download_target_extractor:
         type: DpathExtractor
         field_path:
@@ -1371,27 +2477,24 @@ streams:
       schema:
         type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - Gift ID
-          - Gift Date
         properties:
-          QRECID:
+          Constituent ID:
             type:
               - string
               - "null"
           Gift ID:
             type: string
-          Gift Date:
-            type: string
-          Gift Type:
+          Gift Specific Custom Fields Donation Form Name Description:
             type:
               - string
               - "null"
+          Gift Date:
+            type: string
           Gift Amount:
             type:
               - string
               - "null"
-          Constituent ID:
+          Gift Type:
             type:
               - string
               - "null"
@@ -1399,10 +2502,13 @@ streams:
             type:
               - string
               - "null"
-          Gift Specific Custom Fields Donation Form Name Description:
+          QRECID:
             type:
               - string
               - "null"
+        required:
+          - Gift ID
+          - Gift Date
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -1423,7 +2529,7 @@ streams:
       lookback_window: P7D
       cursor_granularity: P1D
   - type: DeclarativeStream
-    name: generic_query
+    name: query_generic
     retriever:
       type: AsyncRetriever
       status_mapping:
@@ -1459,16 +2565,15 @@ streams:
       polling_requester:
         type: HttpRequester
         url: >-
-          https://api.sky.blackbaud.com/query/jobs/{{
-          creation_response.id
+          https://api.sky.blackbaud.com/query/jobs/{{ creation_response.id
           }}?product=RE&module=None&include_read_url=OnceCompleted
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       creation_requester:
         type: HttpRequester
         url: >-
@@ -1486,17 +2591,17 @@ streams:
             time_zone_offset_in_minutes: 0
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           Content-Type: application/json
           Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
-        error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
       download_requester:
         type: HttpRequester
         url: "{{ download_target }}"
         http_method: GET
         error_handler:
-          $ref: "#/definitions/linked/ErrorHandler"
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
       download_target_extractor:
         type: DpathExtractor
         field_path:
@@ -1507,7 +2612,7 @@ streams:
         type: object
         $schema: http://json-schema.org/schema#
         properties:
-          QRECID:
+          Constituent ID:
             type:
               - string
               - "null"
@@ -1515,11 +2620,11 @@ streams:
             type:
               - string
               - "null"
-          Gift Date:
+          Gift Specific Custom Fields Donation Form Name Description:
             type:
               - string
               - "null"
-          Gift Type:
+          Gift Date:
             type:
               - string
               - "null"
@@ -1527,7 +2632,7 @@ streams:
             type:
               - string
               - "null"
-          Constituent ID:
+          Gift Type:
             type:
               - string
               - "null"
@@ -1535,7 +2640,7 @@ streams:
             type:
               - string
               - "null"
-          Gift Specific Custom Fields Donation Form Name Description:
+          QRECID:
             type:
               - string
               - "null"
@@ -1651,56 +2756,156 @@ metadata:
   testedStreams:
     funds:
       isStale: false
-      hasRecords: false
-      streamHash: a98c40255b65f3fb0c6e3a3928d59e75cc2cd86b
+      hasRecords: true
+      streamHash: 0d2bd700df8ab14d5540d6a53a56f6c4a253ebfd
       hasResponse: true
       primaryKeysAreUnique: true
       primaryKeysArePresent: true
-      responsesAreSuccessful: false
+      responsesAreSuccessful: true
     gifts:
-      streamHash: 9a1c9677a1df8ddc825c897c613d50dc9d08913a
+      isStale: false
+      hasRecords: true
+      streamHash: 35c64ca657a37ffd6ddad938c7e21cd56635846b
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     notes:
-      streamHash: 2fee3aad2845f5b23856f1262042cb837cfc6fd5
+      isStale: false
+      hasRecords: true
+      streamHash: a38b0eb547e9ae42cd0cc64ec474fbdf4d36601a
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     phones:
-      streamHash: 9e79211275113cb9551d0900a11927acfd35753b
+      isStale: false
+      hasRecords: true
+      streamHash: 192b35891b0f97188ecd925497caba32748b738d
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     actions:
-      streamHash: 22ccafd9006da48882b34a1aa4a853087fedcfd1
+      isStale: false
+      hasRecords: true
+      streamHash: 96565eca7d00ad2b501d5069fccb35f571bc5acf
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     appeals:
-      streamHash: 605d231cb506200568c64d4b6441844987fe6f25
+      isStale: false
+      hasRecords: true
+      streamHash: 4842a7d48e1f52330e9a456c2c2345215f69f80b
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     addresses:
-      streamHash: 990d49bb015c83f7b2f0d5a7473cd842884a6398
+      isStale: false
+      hasRecords: true
+      streamHash: ed2be11b07f10655c0a1de89231d66ed1691df84
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     campaigns:
-      isStale: true
-      streamHash: 65710228aba98ee5a43eda05e43308e06500e5ca
-    gift_query:
-      streamHash: bde0f1df82dfca60f71a844440c54f80bb8da25e
+      isStale: false
+      hasRecords: true
+      streamHash: 1d8f3d0c586dfc611d5bedbfb439905938537584
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     constituents:
       isStale: false
       hasRecords: true
-      streamHash: aa68fe446f5833134d4a9973d362c9a2fa3034da
+      streamHash: 447324c4959f9806472ef98d6e20b2f31f58849c
       hasResponse: true
-      primaryKeysAreUnique: false
+      primaryKeysAreUnique: true
       primaryKeysArePresent: true
       responsesAreSuccessful: true
     customfields:
-      streamHash: 5c8a9659106648dfab789854b0b8695d475cbef9
-    generic_query:
-      streamHash: b58e163b4ce984c8f00e6014e2d8c777d75d5e43
+      isStale: false
+      hasRecords: true
+      streamHash: 85aff65851c212bbc44a435ba70631a7559ba6f1
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     opportunities:
-      streamHash: bd8ff4d55831c918e33c65e7cf4be53a56f2e080
+      isStale: false
+      hasRecords: true
+      streamHash: a83ca13a9902426d71d5201e7ffe4f8c1d22d483
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
+    query_generic:
+      streamHash: 0a7b531945a077f698efac03e763e9094e7f6963
+      isStale: false
+      hasResponse: true
+      responsesAreSuccessful: true
+      hasRecords: true
+      primaryKeysArePresent: true
+      primaryKeysAreUnique: true
     relationships:
-      streamHash: b4576a60beb573ee7f774c11c60b056f18666abf
+      isStale: false
+      hasRecords: true
+      streamHash: 8d49f9b6b7b26e2d87e2140baf36bb497adddb32
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     emailaddresses:
-      streamHash: 2fe36ba672a5eff8e7eb85f99b3e6e96256cb9b7
+      isStale: false
+      hasRecords: true
+      streamHash: 493a7d7e3296b6fedd41208d2afa9111b5e8ae6c
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     constituentcodes:
-      streamHash: 632c53f6af26b4048dd3135ee592a09d19b1c5c9
+      isStale: false
+      hasRecords: true
+      streamHash: 99cdc00801d7f7cbdacb16049c3606b312377601
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     giftcustomfields:
-      streamHash: 3227ae35f1cfb1f07ec09f6383c63c748c1b97bd
+      isStale: false
+      hasRecords: true
+      streamHash: 3ddb3c55b42792783eac4b054b87d7a6a7447eab
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
+    query_incremental:
+      isStale: false
+      hasRecords: true
+      streamHash: 1d90c8692b5f1c0fd74a2bab0321abfe7040b967
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     available_codetables:
-      streamHash: debb4253d2d71df2af327ef523fc6e16ee367d21
+      isStale: false
+      hasRecords: true
+      streamHash: be24087a312736793098387d148a2dba4052865d
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     codetable_solicitcodes:
-      isStale: true
-      streamHash: 577eb55c75d20a758d1bba3f09b80aca1735902b
+      isStale: false
+      hasRecords: true
+      streamHash: 2d6cf6e0de15b3abc145ca3e114204c5b289b855
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
   autoImportSchema:
     funds: true
     gifts: true
@@ -1710,15 +2915,15 @@ metadata:
     appeals: true
     addresses: true
     campaigns: true
-    gift_query: true
     constituents: true
     customfields: true
-    generic_query: true
     opportunities: true
+    query_generic: true
     relationships: true
     emailaddresses: true
     constituentcodes: true
     giftcustomfields: true
+    query_incremental: true
     available_codetables: true
     codetable_solicitcodes: true
 
