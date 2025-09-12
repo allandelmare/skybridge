@@ -81,9 +81,12 @@ curl -LsfS https://get.airbyte.com | bash -
 2. Click **+ New Custom Connector**
 3. Select **Import a YAML manifest** -> **Import a YAML** button
 4. Choose `sky-connector.yaml`
-5. Fill in required 'Inputs' (if desired for testing) - OR click 'YAML' toggle at top to let draft save
-7. Click **Publish**
-8. Ignore warnings about untested streams (type 'ignore warnings')
+5. Fill in required 'Inputs' (client ID, secret, API key)
+6. Important: to properly configure your schema and tests in builder mode, you need to stub the access key with dummy data/starting value so its not null (example, just enter 12345678 - oauth will replace it.).
+7. Choose a stream (ie, 'funds'). Scroll to the oAuth section/button and click to authorize.
+8. Click 'test'. This will populate your schema for that stream.
+9. Test streams (or if not planning to use a stream, you can skip tests and ignore warnings).
+10. Click 'Publish'
 
 ### Step 2: Create Source Connection
 1. Go to **Sources** → **+ New Source**
