@@ -76,6 +76,8 @@ curl -LsfS https://get.airbyte.com | bash -
 
 ## Connector Configuration
 
+**query setup quick start: https://youtu.be/QCiAqbmvA5I **
+
 ### Step 1: Add Custom Connector
 1. In Airbyte, navigate to **Builder**
 2. Click **+ New Custom Connector**
