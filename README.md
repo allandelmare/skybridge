@@ -1,7 +1,7 @@
 (Work in progress -- use at your own risk) 
 # SKY Bridge - Airbyte Connector for Blackbaud NXT
 
-An open-source Airbyte connector that enables seamless data integration between Blackbaud NXT (via SKY API) and 60+ modern data platforms including Snowflake, BigQuery, PostgreSQL, and more.
+An open-source Airbyte connector that enables seamless data integration between Blackbaud NXT (via SKY API) and 50+ modern data platforms including Snowflake, BigQuery, PostgreSQL, and more.
 
 ## 🎯 Overview
 
@@ -58,7 +58,7 @@ SKY Bridge democratizes access to NXT data by providing a no-code/low-code solut
 4. Choose `skybridge-connector.yaml` from your file system.
 5. Name it (example, "Blackbaud NXT (SKY API)").
 6. Configure Query ID's and/or Codetable ID's. Duplicate streams to create and customize your own!
-7. Test if desired (especially if you made any changes) - note that manually adding an access token is required for first test in builder mode (not required in production).
+7. Test if desired (especially if you made any changes) - note that manually adding any value in the access token field is required for first test in builder mode (not required in production).
 8. Click 'Publish' to your own organization.
 
 #### Step 3: Configure Connection
@@ -74,7 +74,7 @@ SKY Bridge democratizes access to NXT data by providing a no-code/low-code solut
 
 #### Step 4: Set Up Destination
 
-Choose from 60+ destinations:
+Choose from 50+ destinations:
 - **Data Warehouses**: Snowflake, BigQuery, Redshift, Databricks
 - **Databases**: PostgreSQL, MySQL, MongoDB, MS SQL Server
 - **Data Lakes**: S3, Azure Blob, GCS
@@ -139,7 +139,7 @@ The connector handles OAuth 2.0 authentication automatically:
 ### Pagination Strategies
 
 Two pagination methods are supported:
-- **Offset Pagination**: For standard endpoints
+- **Offset Pagination**: For standard endpoints. Note that a token based approach to better support this is in development. Current implementation causes harmless "unique primary key" warnings. 
 - **Continuation Token**: For large result sets
 
 ### Error Handling
@@ -167,6 +167,7 @@ We welcome contributions from the Blackbaud developer community!
 - Query templates
 - Performance optimizations
 - Documentation improvements
+- pagination offset handling improvrment using token
 - Bug fixes
 
 ## 📊 Use Cases
@@ -228,10 +229,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Required Scopes
 Ensure your SKY application has these scopes:
-- Constituent (Read)
-- Gift (Read)
-- Fundraising (Read)
-- Opportunity (Read)
+- NXT (Read)
 
 ### Sync Recommendations
 - Initial Sync: Start with a limited date range
