@@ -27,7 +27,7 @@ SKY Bridge democratizes access to NXT data by providing a no-code/low-code solut
 - ✅ Relationships
 - ✅ Constituent Codes and Custom Fields
 - ✅ Code Tables
-- ✅ Custom Queries (with parameters)
+- ✅ Custom Queries (with parameters) - quick start guide: https://youtu.be/QCiAqbmvA5I
 
 ## 🚀 Quick Start
 
@@ -142,7 +142,7 @@ The connector handles OAuth 2.0 authentication automatically:
 ### Pagination Strategies
 
 Two pagination methods are supported:
-- **Offset Pagination**: For standard endpoints. Note that a token based approach to better support this is in development. Current implementation causes harmless "unique primary key" warnings. 
+- **Offset Pagination**: For standard endpoints. Note that a token based approach to better support this is in development. Work in progress.
 - **Continuation Token**: For large result sets
 
 ### Error Handling
@@ -151,6 +151,7 @@ Built-in resilience features:
 - Automatic retry with exponential backoff
 - Graceful handling of rate limits
 - Detailed error logging
+- Work in progress
 
 ## 🤝 Contributing
 
@@ -170,7 +171,7 @@ We welcome contributions from the Blackbaud developer community!
 - Query templates
 - Performance optimizations
 - Documentation improvements
-- pagination offset handling improvrment using token
+- pagination offset handling improvement using token
 - Bug fixes
 
 ## 📊 Use Cases
