@@ -82,17 +82,12 @@ definitions:
     SimpleRetriever:
       paginator:
         type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: limit
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: offset
-          inject_into: request_parameter
         pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
+          type: CursorPagination
+          cursor_value: "{{ response.get('next_link', '') }}"
+          stop_condition: "{{ not response.get('next_link') }}"
+        page_token_option:
+          type: RequestPath
     ContinuationTokenRetriever:
       paginator:
         type: DefaultPaginator
@@ -1021,14 +1016,7 @@ streams:
     retriever:
       type: SimpleRetriever
       paginator:
-        type: DefaultPaginator
-        page_token_option:
-          type: RequestOption
-          field_name: offset
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 500
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
         url: >-
@@ -1239,14 +1227,7 @@ streams:
     retriever:
       type: SimpleRetriever
       paginator:
-        type: DefaultPaginator
-        page_token_option:
-          type: RequestOption
-          field_name: offset
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 10000
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
         url: >-
@@ -1278,14 +1259,7 @@ streams:
     retriever:
       type: SimpleRetriever
       paginator:
-        type: DefaultPaginator
-        page_token_option:
-          type: RequestOption
-          field_name: offset
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 10000
+        $ref: "#/definitions/linked/SimpleRetriever/paginator"
       requester:
         type: HttpRequester
         url: >-
