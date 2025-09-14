@@ -561,7 +561,7 @@ streams:
           inject_into: request_parameter
         pagination_strategy:
           type: CursorPagination
-          page_size: 100
+          page_size: 4900
           cursor_value: "{{ response.get('continuation_token', '') }}"
           stop_condition: "{{ not response.get('continuation_token') }}"
       requester:
@@ -587,9 +587,6 @@ streams:
       schema:
         type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - id
-          - date_modified
         properties:
           type:
             type:
@@ -601,27 +598,7 @@ streams:
               - "null"
           id:
             type: string
-          date:
-            type:
-              - string
-              - "null"
-          status:
-            type:
-              - string
-              - "null"
-          outcome:
-            type:
-              - string
-              - "null"
-          summary:
-            type:
-              - string
-              - "null"
           category:
-            type:
-              - string
-              - "null"
-          priority:
             type:
               - string
               - "null"
@@ -629,7 +606,19 @@ streams:
             type:
               - boolean
               - "null"
-          direction:
+          completed_date:
+            type:
+              - string
+              - "null"
+          computed_status:
+            type:
+              - string
+              - "null"
+          constituent_id:
+            type:
+              - string
+              - "null"
+          date:
             type:
               - string
               - "null"
@@ -637,7 +626,9 @@ streams:
             type:
               - string
               - "null"
-          start_time:
+          date_modified:
+            type: string
+          direction:
             type:
               - string
               - "null"
@@ -649,13 +640,23 @@ streams:
               type:
                 - string
                 - "null"
-          date_modified:
-            type: string
-          completed_date:
+          outcome:
             type:
               - string
               - "null"
-          constituent_id:
+          priority:
+            type:
+              - string
+              - "null"
+          status:
+            type:
+              - string
+              - "null"
+          summary:
+            type:
+              - string
+              - "null"
+          start_time:
             type:
               - string
               - "null"
@@ -663,10 +664,17 @@ streams:
             type:
               - string
               - "null"
-          computed_status:
+          location:
             type:
               - string
               - "null"
+          status_code:
+            type:
+              - string
+              - "null"
+        required:
+          - id
+          - date_modified
         additionalProperties: true
     incremental_sync:
       type: DatetimeBasedCursor
@@ -1804,36 +1812,9 @@ streams:
       schema:
         type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - id
-          - date_modified
         properties:
           id:
             type: string
-          name:
-            type:
-              - string
-              - "null"
-          status:
-            type:
-              - string
-              - "null"
-          purpose:
-            type:
-              - string
-              - "null"
-          ask_date:
-            type:
-              - string
-              - "null"
-          deadline:
-            type:
-              - string
-              - "null"
-          inactive:
-            type:
-              - boolean
-              - "null"
           ask_amount:
             type:
               - object
@@ -1843,38 +1824,31 @@ streams:
                 type:
                   - number
                   - "null"
+          ask_date:
+            type:
+              - string
+              - "null"
+          constituent_id:
+            type:
+              - string
+              - "null"
           date_added:
             type:
               - string
               - "null"
-          funded_date:
+          date_modified:
             type:
               - string
               - "null"
-          fundraisers:
+          expected_amount:
             type:
-              - array
+              - object
               - "null"
-            items:
-              type:
-                - object
-                - "null"
-              properties:
-                credit_amount:
-                  type:
-                    - object
-                    - "null"
-                  properties:
-                    value:
-                      type:
-                        - number
-                        - "null"
-                constituent_id:
-                  type:
-                    - string
-                    - "null"
-          date_modified:
-            type: string
+            properties:
+              value:
+                type:
+                  - number
+                  - "null"
           expected_date:
             type:
               - string
@@ -1888,20 +1862,41 @@ streams:
                 type:
                   - number
                   - "null"
-          constituent_id:
+          fundraisers:
+            type:
+              - array
+              - "null"
+            items:
+              type:
+                - object
+                - "null"
+              properties:
+                constituent_id:
+                  type:
+                    - string
+                    - "null"
+                credit_amount:
+                  type:
+                    - object
+                    - "null"
+                  properties:
+                    value:
+                      type:
+                        - number
+                        - "null"
+          inactive:
+            type:
+              - boolean
+              - "null"
+          name:
             type:
               - string
               - "null"
-          expected_amount:
+          purpose:
             type:
-              - object
+              - string
               - "null"
-            properties:
-              value:
-                type:
-                  - number
-                  - "null"
-          opportunity_likelihood_id:
+          status:
             type:
               - string
               - "null"
@@ -1909,27 +1904,25 @@ streams:
             type:
               - string
               - "null"
+          opportunity_likelihood_id:
+            type:
+              - string
+              - "null"
+          funded_date:
+            type:
+              - string
+              - "null"
+          deadline:
+            type:
+              - string
+              - "null"
+          campaign_id:
+            type:
+              - string
+              - "null"
+        required:
+          - id
         additionalProperties: true
-    incremental_sync:
-      type: DatetimeBasedCursor
-      step: P30D
-      cursor_field: date_modified
-      end_datetime:
-        type: MinMaxDatetime
-        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
-        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
-      start_datetime:
-        type: MinMaxDatetime
-        datetime: >-
-          {{ config.get('start_date') if config.get('start_date') else
-          '2020-01-01T00:00:00Z' }}
-        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
-      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      start_time_option:
-        type: RequestOption
-        field_name: last_modified
-        inject_into: request_parameter
-      cursor_granularity: PT1S
   - type: DeclarativeStream
     name: campaigns
     retriever:
@@ -2789,7 +2782,7 @@ metadata:
     actions:
       isStale: false
       hasRecords: true
-      streamHash: 96565eca7d00ad2b501d5069fccb35f571bc5acf
+      streamHash: 5a3da4e43525d669c6c4f53f3c48af013b895fd1
       hasResponse: true
       primaryKeysAreUnique: true
       primaryKeysArePresent: true
@@ -2837,7 +2830,7 @@ metadata:
     opportunities:
       isStale: false
       hasRecords: true
-      streamHash: a83ca13a9902426d71d5201e7ffe4f8c1d22d483
+      streamHash: 3ecad2e560f5265201b893d1467e95087a3cbacb
       hasResponse: true
       primaryKeysAreUnique: true
       primaryKeysArePresent: true
