@@ -1795,6 +1795,8 @@ streams:
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
         request_parameters:
@@ -2301,6 +2303,8 @@ streams:
         http_method: GET
         authenticator:
           $ref: "#/definitions/linked/HttpRequester/authenticator"
+        error_handler:
+          $ref: "#/definitions/linked/HttpRequester/error_handler"
         request_headers:
           $ref: "#/definitions/linked/HttpRequester/request_headers"
         request_parameters:
