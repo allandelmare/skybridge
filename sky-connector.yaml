@@ -138,6 +138,9 @@ definitions:
         Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
       request_parameters:
         include_inactive: "true"
+      request_body:
+        type: RequestBodyJsonObject
+        value: {}
     SimpleRetriever:
       paginator:
         type: DefaultPaginator
@@ -3087,8 +3090,7 @@ dynamic_streams:
             https://api.sky.blackbaud.com/query/queries/executebyid?product=RE&module=None
           http_method: POST
           request_body:
-            type: RequestBodyJsonObject
-            value: {}
+            $ref: "#/definitions/linked/HttpRequester/request_body"
           authenticator:
             $ref: "#/definitions/linked/HttpRequester/authenticator"
           error_handler:
@@ -3154,8 +3156,7 @@ dynamic_streams:
               https://api.sky.blackbaud.com/query/queries/executebyid?product=RE&module=None
             http_method: POST
             request_body:
-              type: RequestBodyJsonObject
-              value: {}
+              $ref: "#/definitions/linked/HttpRequester/request_body"
             request_headers:
               Content-Type: application/json
               Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
