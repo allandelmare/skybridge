@@ -416,6 +416,13 @@ definitions:
           type: DpathExtractor
           field_path:
             - sas_uri
+      schema_loader:
+        type: InlineSchemaLoader
+        schema:
+          type: object
+          $schema: http://json-schema.org/draft-07/schema#
+          properties: {}
+          additionalProperties: true
     CodetableStreamTemplate:
       type: DeclarativeStream
       name: custom_codetable_stream
@@ -526,6 +533,13 @@ definitions:
               - value
       primary_key:
         - table_entries_id
+      schema_loader:
+        type: InlineSchemaLoader
+        schema:
+          type: object
+          $schema: http://json-schema.org/draft-07/schema#
+          properties: {}
+          additionalProperties: true
     ContinuationTokenRetriever:
       paginator:
         type: DefaultPaginator
