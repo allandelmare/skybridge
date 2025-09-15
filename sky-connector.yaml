@@ -2900,7 +2900,7 @@ metadata:
     gifts query:
       isStale: false
       hasRecords: true
-      streamHash: acc889505cd8a8ac4f14ca7e5720eb15670eec66
+      streamHash: f6bc185b99cdf13a4d1746091e9102cd8d7c4d92
       hasResponse: true
       primaryKeysAreUnique: true
       primaryKeysArePresent: true
@@ -3012,7 +3012,9 @@ metadata:
     giftcustomfields: true
     query_incremental: true
     available_codetables: true
+    custom_query_streams: true
     codetable_solicitcodes: true
+    custom_codetable_streams: true
 
 dynamic_streams:
   - type: DynamicDeclarativeStream
@@ -3089,6 +3091,45 @@ dynamic_streams:
           type: DpathExtractor
           field_path:
             - sas_uri
+      schema_loader:
+        type: InlineSchemaLoader
+        schema:
+          type: object
+          $schema: http://json-schema.org/schema#
+          properties:
+            QRECID:
+              type:
+                - string
+                - "null"
+            Gift ID:
+              type:
+                - string
+                - "null"
+            Gift Date:
+              type:
+                - string
+                - "null"
+            Gift Type:
+              type:
+                - string
+                - "null"
+            Gift Amount:
+              type:
+                - string
+                - "null"
+            Constituent ID:
+              type:
+                - string
+                - "null"
+            First Gift Date:
+              type:
+                - string
+                - "null"
+            Gift Specific Custom Fields Donation Form Name Description:
+              type:
+                - string
+                - "null"
+          additionalProperties: true
     components_resolver:
       type: ConfigComponentsResolver
       stream_config:
@@ -3143,6 +3184,13 @@ dynamic_streams:
               - value
       primary_key:
         - table_entries_id
+      schema_loader:
+        type: InlineSchemaLoader
+        schema:
+          type: object
+          $schema: http://json-schema.org/draft-07/schema#
+          properties: {}
+          additionalProperties: true
     components_resolver:
       type: ConfigComponentsResolver
       stream_config:
