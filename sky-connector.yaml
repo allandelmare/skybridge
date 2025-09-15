@@ -3146,6 +3146,8 @@ dynamic_streams:
               Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
             authenticator:
               $ref: "#/definitions/linked/HttpRequester/authenticator"
+            error_handler:
+              $ref: "#/definitions/linked/HttpRequester/error_handler"
           creation_requester:
             type: HttpRequester
             url: >-
@@ -3159,6 +3161,8 @@ dynamic_streams:
               Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
             authenticator:
               $ref: "#/definitions/linked/HttpRequester/authenticator"
+            error_handler:
+              $ref: "#/definitions/linked/HttpRequester/error_handler"
           download_decoder:
             type: CsvDecoder
             encoding: utf-8
@@ -3169,6 +3173,8 @@ dynamic_streams:
             http_method: GET
             authenticator:
               $ref: "#/definitions/linked/HttpRequester/authenticator"
+            error_handler:
+              $ref: "#/definitions/linked/HttpRequester/error_handler"
           download_target_extractor:
             type: DpathExtractor
             field_path:
