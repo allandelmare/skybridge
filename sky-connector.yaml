@@ -3150,14 +3150,19 @@ dynamic_streams:
             type: HttpRequester
             url: >-
               https://api.sky.blackbaud.com/query/queries/executebyid?product=RE&module=None
-            http_method: GET
+            http_method: POST
+            request_body:
+              type: RequestBodyJsonObject
+              value: {}
             request_headers:
               Content-Type: application/json
               Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
             authenticator:
               $ref: "#/definitions/linked/HttpRequester/authenticator"
-          download_extractor:
-            type: ResponseToFileExtractor
+          download_decoder:
+            type: CsvDecoder
+            encoding: utf-8
+            delimiter: ","
           download_requester:
             type: HttpRequester
             url: "{{ download_target }}"
@@ -3187,10 +3192,22 @@ dynamic_streams:
         - type: ComponentMappingDefinition
           value: >-
             { "id": {{ components_values.query_id }},  "ux_mode":
-            "Asynchronous",  "output_format": "Csv",  "formatting_mode": "UI", 
-            "sql_generation_mode": "Query",  "use_static_query_id_set": false, 
+            "Asynchronous",  "output_format": "Csv",  "formatting_mode": "UI",
+            "sql_generation_mode": "Query",  "use_static_query_id_set": false,
             "time_zone_offset_in_minutes": 0}
           field_path:
+            - retriever
+            - creation_requester
+            - request_body
+            - value
+        - type: ComponentMappingDefinition
+          value: >-
+            { "id": {{ components_values.query_id }},  "ux_mode":
+            "Asynchronous",  "output_format": "Csv",  "formatting_mode": "UI",
+            "sql_generation_mode": "Query",  "use_static_query_id_set": false,
+            "time_zone_offset_in_minutes": 0}
+          field_path:
+            - schema_loader
             - retriever
             - creation_requester
             - request_body
