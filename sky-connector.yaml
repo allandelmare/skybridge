@@ -2738,6 +2738,18 @@ spec:
         order: 0
         title: Client ID
         airbyte_secret: true
+      client_secret:
+        type: string
+        description: The Application secret from your registered SKY application
+        order: 1
+        title: Client Secret
+        airbyte_secret: true
+      subscription_key:
+        type: string
+        description: Your SKY API subscription key (primary or secondary)
+        order: 2
+        title: Subscription Key
+        airbyte_secret: true
       start_date:
         type: string
         description: >-
@@ -2749,11 +2761,11 @@ spec:
         pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
         examples:
           - "2020-01-01T00:00:00Z"
-      client_secret:
+      client_refresh_token:
         type: string
-        description: The Application secret from your registered SKY application
-        order: 1
-        title: Client Secret
+        order: 4
+        title: Refresh Token
+        airbyte_hidden: true
         airbyte_secret: true
       custom_queries:
         type: array
@@ -2779,11 +2791,11 @@ spec:
               stream_name: gift_query
             - query_id: 50602
               stream_name: constituent_query
-      subscription_key:
+      client_access_token:
         type: string
-        description: Your SKY API subscription key (primary or secondary)
-        order: 2
-        title: Subscription Key
+        order: 6
+        title: Access Token
+        airbyte_hidden: true
         airbyte_secret: true
       custom_codetables:
         type: array
@@ -2802,25 +2814,13 @@ spec:
               type: string
               description: Name for this stream in Airbyte (e.g., 'solicit_codes')
               title: Stream Name
-        order: 6
+        order: 7
         title: Custom Codetable Streams
         examples:
           - - table_id: 5044
               stream_name: solicit_codes
             - table_id: 5045
               stream_name: gift_types
-      client_access_token:
-        type: string
-        order: 5
-        title: Access Token
-        airbyte_hidden: true
-        airbyte_secret: true
-      client_refresh_token:
-        type: string
-        order: 4
-        title: Refresh Token
-        airbyte_hidden: true
-        airbyte_secret: true
     additionalProperties: true
 
 metadata:
@@ -3106,6 +3106,72 @@ dynamic_streams:
           type: DpathExtractor
           field_path:
             - sas_uri
+      schema_loader:
+        type: DynamicSchemaLoader
+        retriever:
+          type: AsyncRetriever
+          status_mapping:
+            type: AsyncJobStatusMap
+            failed:
+              - Failed
+              - Error
+              - Cancelled
+            running:
+              - Running
+              - Queued
+              - Pending
+              - Throttled
+              - Cancelling
+            timeout:
+              - Timeout
+              - TimedOut
+            completed:
+              - Completed
+          record_selector:
+            type: RecordSelector
+            extractor:
+              type: DpathExtractor
+              field_path: []
+          status_extractor:
+            type: DpathExtractor
+            field_path:
+              - status
+          polling_requester:
+            type: HttpRequester
+            url: >-
+              https://api.sky.blackbaud.com/query/jobs/{{ creation_response.id
+              }}?product=RE&module=None&include_read_url=OnceCompleted
+            http_method: GET
+            request_headers:
+              Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+            authenticator:
+              $ref: "#/definitions/linked/HttpRequester/authenticator"
+          creation_requester:
+            type: HttpRequester
+            url: >-
+              https://api.sky.blackbaud.com/query/queries/executebyid?product=RE&module=None
+            http_method: GET
+            request_headers:
+              Content-Type: application/json
+              Bb-Api-Subscription-Key: "{{ config['subscription_key'] }}"
+            authenticator:
+              $ref: "#/definitions/linked/HttpRequester/authenticator"
+          download_extractor:
+            type: ResponseToFileExtractor
+          download_requester:
+            type: HttpRequester
+            url: "{{ download_target }}"
+            http_method: GET
+            authenticator:
+              $ref: "#/definitions/linked/HttpRequester/authenticator"
+          download_target_extractor:
+            type: DpathExtractor
+            field_path:
+              - sas_uri
+        schema_type_identifier:
+          type: SchemaTypeIdentifier
+          key_pointer: []
+          schema_pointer: []
     components_resolver:
       type: ConfigComponentsResolver
       stream_config:
