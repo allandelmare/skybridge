@@ -416,13 +416,6 @@ definitions:
           type: DpathExtractor
           field_path:
             - sas_uri
-      schema_loader:
-        type: InlineSchemaLoader
-        schema:
-          type: object
-          $schema: http://json-schema.org/draft-07/schema#
-          properties: {}
-          additionalProperties: true
     CodetableStreamTemplate:
       type: DeclarativeStream
       name: custom_codetable_stream
@@ -533,13 +526,6 @@ definitions:
               - value
       primary_key:
         - table_entries_id
-      schema_loader:
-        type: InlineSchemaLoader
-        schema:
-          type: object
-          $schema: http://json-schema.org/draft-07/schema#
-          properties: {}
-          additionalProperties: true
     ContinuationTokenRetriever:
       paginator:
         type: DefaultPaginator
@@ -2842,7 +2828,7 @@ metadata:
     test:
       isStale: false
       hasRecords: true
-      streamHash: 9714cc772798a0854a04a0f8588acc76e5da554a
+      streamHash: 7510e9a80e05269f4ad60018752c01e42a41fdbe
       hasResponse: true
       primaryKeysAreUnique: true
       primaryKeysArePresent: true
@@ -2895,6 +2881,14 @@ metadata:
       primaryKeysAreUnique: true
       primaryKeysArePresent: true
       responsesAreSuccessful: true
+    solicit:
+      isStale: false
+      hasRecords: true
+      streamHash: 35988744ef3a8dbd6b98f9603b36528f96df1093
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
     addresses:
       isStale: false
       hasRecords: true
@@ -2914,7 +2908,15 @@ metadata:
     gifts query:
       isStale: false
       hasRecords: true
-      streamHash: f6bc185b99cdf13a4d1746091e9102cd8d7c4d92
+      streamHash: acc889505cd8a8ac4f14ca7e5720eb15670eec66
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
+    Online Gifts:
+      isStale: false
+      hasRecords: true
+      streamHash: 7eed8860205733f62aee1b7220da1fd8ffbb7eef
       hasResponse: true
       primaryKeysAreUnique: true
       primaryKeysArePresent: true
@@ -3026,9 +3028,8 @@ metadata:
     giftcustomfields: true
     query_incremental: true
     available_codetables: true
-    custom_query_streams: true
     codetable_solicitcodes: true
-    custom_codetable_streams: true
+    custom_codetable_streams: false
 
 dynamic_streams:
   - type: DynamicDeclarativeStream
@@ -3105,45 +3106,6 @@ dynamic_streams:
           type: DpathExtractor
           field_path:
             - sas_uri
-      schema_loader:
-        type: InlineSchemaLoader
-        schema:
-          type: object
-          $schema: http://json-schema.org/schema#
-          properties:
-            QRECID:
-              type:
-                - string
-                - "null"
-            Gift ID:
-              type:
-                - string
-                - "null"
-            Gift Date:
-              type:
-                - string
-                - "null"
-            Gift Type:
-              type:
-                - string
-                - "null"
-            Gift Amount:
-              type:
-                - string
-                - "null"
-            Constituent ID:
-              type:
-                - string
-                - "null"
-            First Gift Date:
-              type:
-                - string
-                - "null"
-            Gift Specific Custom Fields Donation Form Name Description:
-              type:
-                - string
-                - "null"
-          additionalProperties: true
     components_resolver:
       type: ConfigComponentsResolver
       stream_config:
@@ -3199,12 +3161,32 @@ dynamic_streams:
       primary_key:
         - table_entries_id
       schema_loader:
-        type: InlineSchemaLoader
-        schema:
-          type: object
-          $schema: http://json-schema.org/draft-07/schema#
-          properties: {}
-          additionalProperties: true
+        type: DynamicSchemaLoader
+        retriever:
+          type: SimpleRetriever
+          requester:
+            type: HttpRequester
+            url: >-
+              https://api.sky.blackbaud.com/codetable/v1/codetables/{{
+              components_values.table_id }}/tableentries
+            http_method: GET
+            authenticator:
+              $ref: "#/definitions/linked/HttpRequester/authenticator"
+            request_headers:
+              $ref: "#/definitions/linked/HttpRequester/request_headers"
+            request_parameters:
+              limit: "100"
+              include_inactive: "false"
+          record_selector:
+            type: RecordSelector
+            extractor:
+              type: DpathExtractor
+              field_path:
+                - value
+        schema_type_identifier:
+          type: SchemaTypeIdentifier
+          key_pointer: []
+          schema_pointer: []
     components_resolver:
       type: ConfigComponentsResolver
       stream_config:
@@ -3222,6 +3204,15 @@ dynamic_streams:
             https://api.sky.blackbaud.com/codetable/v1/codetables/{{
             components_values.table_id }}/tableentries
           field_path:
+            - retriever
+            - requester
+            - url
+        - type: ComponentMappingDefinition
+          value: >-
+            https://api.sky.blackbaud.com/codetable/v1/codetables/{{
+            components_values.table_id }}/tableentries
+          field_path:
+            - schema_loader
             - retriever
             - requester
             - url
