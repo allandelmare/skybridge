@@ -148,7 +148,7 @@ definitions:
           type: RequestPath
         pagination_strategy:
           type: CursorPagination
-          page_size: 4900
+          page_size: 4000
           cursor_value: "{{ response.get('next_link', '') }}"
           stop_condition: "{{ not response.get('next_link') }}"
     QueryStreamTemplate:
@@ -430,7 +430,7 @@ definitions:
             type: RequestPath
           pagination_strategy:
             type: CursorPagination
-            page_size: 4900
+            page_size: 4000
             cursor_value: "{{ response.get('next_link', '') }}"
             stop_condition: "{{ not response.get('next_link') }}"
         requester:
@@ -542,7 +542,7 @@ definitions:
           inject_into: request_parameter
         pagination_strategy:
           type: CursorPagination
-          page_size: 100
+          page_size: 4000
           cursor_value: "{{ response.get('continuation_token', '') }}"
           stop_condition: "{{ not response.get('continuation_token') }}"
 
@@ -942,7 +942,7 @@ streams:
           inject_into: request_parameter
         pagination_strategy:
           type: CursorPagination
-          page_size: 4900
+          page_size: 4000
           cursor_value: "{{ response.get('continuation_token', '') }}"
           stop_condition: "{{ not response.get('continuation_token') }}"
       requester:
@@ -2197,6 +2197,7 @@ streams:
         $schema: http://json-schema.org/schema#
         required:
           - id
+          - date_modified
         properties:
           id:
             type: string
@@ -2306,6 +2307,26 @@ streams:
               - string
               - "null"
         additionalProperties: true
+    incremental_sync:
+      type: DatetimeBasedCursor
+      step: P30D
+      cursor_field: date_modified
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: "{{ now_utc().strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: >-
+          {{ config.get('start_date') if config.get('start_date') else
+          '2020-01-01T00:00:00Z' }}
+        datetime_format: "%Y-%m-%dT%H:%M:%SZ"
+      datetime_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+      start_time_option:
+        type: RequestOption
+        field_name: last_modified
+        inject_into: request_parameter
+      cursor_granularity: PT1S
   - type: DeclarativeStream
     name: campaigns
     retriever:
@@ -3032,7 +3053,7 @@ metadata:
     query_incremental: true
     available_codetables: true
     codetable_solicitcodes: true
-    custom_codetable_streams: false
+    custom_codetable_streams: true
 
 dynamic_streams:
   - type: DynamicDeclarativeStream
